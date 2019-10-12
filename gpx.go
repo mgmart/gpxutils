@@ -22,6 +22,8 @@
 
 package main
 
+import "encoding/xml"
+
 //
 // Data Structures
 //
@@ -33,27 +35,29 @@ type Query struct {
 
 // Note ...
 type Track struct {
-	Name   string `xml:"name"`
-	Desc   string `xml:"desc"`
-	Trkseg struct {
-		Trkpt struct {
-			Lat  string `xml:"lat"`
-			Lon  string `xml:"lon"`
-			Ele  string `xml:"ele"`
-			Time string `xml:"time"`
-			Ext  struct {
-				Hr  string `xml:"gpxdata:hr"`
-				Cad string `xml:"gpxdata:cadence"`
-			} `xml:"extensions"`
-		} `xml:"trkpt"`
-	} `xml:"trkseg"`
+	XMLName xml.Name `xml:"trk"`
+	Name    string   `xml:"name"`
+	Desc    string   `xml:"desc"`
+	Trksegs []Trkseg `xml:"trkseg"`
 }
 
-// Resource ...
-// type Resource struct {
-// 	Mime string `xml:"mime"`
-// 	Data struct {
-// 		Content  string `xml:",chardata"`
-// 		Encoding string `xml:"encoding,attr"`
-// 	} `xml:"data"`
+type Trkseg struct {
+	Trkpts []Trkpt `xml:"trkpt"`
+}
+
+type Trkpt struct {
+	Lat  string          `xml:"lat,attr"`
+	Lon  string          `xml:"lon,attr"`
+	Ele  string          `xml:"ele"`
+	Time string          `xml:"time"`
+	Exts *ExtensionsType `xml:"extensions"`
+}
+
+type ExtensionsType struct {
+	XML []byte `xml:",innerxml"`
+}
+
+// type GpxExt struct {
+// 	Hr  int `xml:"gpxdata:hr"`
+// 	Cad int `xml:"gpxdata:cadence"`
 // }

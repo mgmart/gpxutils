@@ -28,40 +28,25 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"golang.org/x/net/html"
 )
 
 // Globals for filehandling
 var (
-	readFile       = ""
-	attFolderExt   = "-attachments"
-	attachmentPath = ""
-
-	isMerged bool
+	readFile  = ""
+	ls, split bool
 )
 
-// Get Attributes for html tag
-func getAttr(attribute string, token html.Token) string {
-	for _, attr := range token.Attr {
-		if attr.Key == attribute {
-			return attr.Val
-		}
-	}
-	return ""
-}
-
-// Org mode representation of Node
-
 func main() {
-	wordPtr := flag.String("input", "gpx File", "relative path to enex file")
 
-	flag.BoolVar(&isMerged, "split", false, "whether to write single files for tracks")
+	// command line parsing
+	wordPtr := flag.String("input", "GPX File", "relative path to GPX file")
+
+	flag.BoolVar(&split, "split", false, "write single files for tracks")
+	flag.BoolVar(&ls, "ls", false, "list tracks ")
 	flag.Parse()
 	if wordPtr == nil || *wordPtr == "" {
 		panic("input file is missing")
 	}
-	fmt.Println("input:", *wordPtr)
 
 	// Open the file given at commandline
 	readFile = *wordPtr
@@ -74,24 +59,63 @@ func main() {
 
 	defer func() { _ = xmlFile.Close() }()
 
-	fmt.Println("Reading file")
+	//	fmt.Println("Reading file")
 	b, _ := ioutil.ReadAll(xmlFile)
-	fmt.Println("Finished reading file")
+	//	fmt.Println("Finished reading file")
 
-	fmt.Println("Marshalling file")
+	//	fmt.Println("Marshalling file")
 	var q Query
 	_ = xml.Unmarshal(b, &q)
-	fmt.Println("Finished marshalling file")
+	//	fmt.Println("Finished marshalling file")
 
-	// Parse the contained xml
-	if isMerged {
+	header := `<?xml version="1.0" encoding="UTF-8" ?>
+	<gpx xmlns="http://www.topografix.com/GPX/1/1"
+	    version="1.1"
+	    creator="rubiTrack - https://www.rubitrack.com"
+	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0"
+	    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.cluetrust.com/XML/GPXDATA/1/0 http://www.cluetrust.com/Schemas/gpxdata10.xsd">`
+	//	Parse the contained xml
+
+	if split {
+
+		if _, err = os.Stat("out"); os.IsNotExist(err) {
+			_ = os.Mkdir("out", 0711)
+		}
+
+		for _, track := range q.Tracks {
+			outfile := ""
+			for _, trksegs := range track.Trksegs {
+				for _, trkpt := range trksegs.Trkpts {
+					if len(trkpt.Time) > 0 {
+						outfile = trkpt.Time
+						break
+					}
+				}
+			}
+
+			b, _ := xml.MarshalIndent(track, "  ", "  ")
+			f, err := os.Create("out/" + outfile + ".gpx")
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			f.WriteString(header)
+			f.WriteString(string(b))
+			f.WriteString("\n</gpx>\n")
+			_ = f.Close()
+		}
 		return
+
 	}
 
 	fmt.Println("Amount of tracks: ", len(q.Tracks))
 
-	for i := 0; i < len(q.Tracks); i++ {
-		fmt.Println("Track description: " + q.Tracks[i].Desc)
+	if ls {
 
+		for i := 0; i < len(q.Tracks); i++ {
+			fmt.Println("Track description: " + q.Tracks[i].Desc)
+		}
 	}
 }
