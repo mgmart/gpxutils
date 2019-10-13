@@ -1,0 +1,29 @@
+#+TITLE: GPS Track Utilites
+
+* GPS Track Utilities
+
+This project was initiated because I needed a tools which extracts all tracks
+from a multi-track GPX file.
+
+At the moment this is besides the possibility to list all tracks within a file
+the only implemented function.
+
+Possible additions to this project could be reading and writing of /fit/ files.
+
+** Usage
+
+Show all possible command line arguments
+#+BEGIN_SRC shell
+gpxutils -h
+#+END_SRC
+
+List all tracks (by timestamp) within a multi-track GPX file
+#+BEGIN_SRC shell
+gpxutils -in [gpxfile] ls
+#+END_SRC
+
+Extract all tracks to single files from multi-track GPX file
+#+BEGIN_SRC shell
+gpxutils -in [gpxfile] -out [folder to write to] -split
+#+END_SRC
+
