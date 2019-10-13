@@ -28,9 +28,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
+
+	"github.com/briandowns/spinner"
 )
 
-// Globals for filehandling
 var (
 	readFile  = ""
 	ls, split bool
@@ -59,15 +61,17 @@ func main() {
 
 	defer func() { _ = xmlFile.Close() }()
 
-	//	fmt.Println("Reading file")
 	b, _ := ioutil.ReadAll(xmlFile)
-	//	fmt.Println("Finished reading file")
 
-	//	fmt.Println("Marshalling file")
+	s := spinner.New(spinner.CharSets[38], 200*time.Millisecond) // Build our new spinner
+	s.Prefix = "Processing input-file: "
+	s.Writer = os.Stderr
+	s.Start() // Start the spinner
+
 	var q Query
 	_ = xml.Unmarshal(b, &q)
-	//	fmt.Println("Finished marshalling file")
 
+	s.Stop()
 	header := `<?xml version="1.0" encoding="UTF-8" ?>
 	<gpx xmlns="http://www.topografix.com/GPX/1/1"
 	    version="1.1"
@@ -82,6 +86,8 @@ func main() {
 		if _, err = os.Stat("out"); os.IsNotExist(err) {
 			_ = os.Mkdir("out", 0711)
 		}
+		s.Prefix = "Creating single files: "
+		s.Start() // Start the spinner
 
 		for _, track := range q.Tracks {
 			outfile := ""
@@ -106,6 +112,7 @@ func main() {
 			f.WriteString("\n</gpx>\n")
 			_ = f.Close()
 		}
+		s.Stop()
 		return
 
 	}
