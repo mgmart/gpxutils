@@ -22,7 +22,10 @@
 
 package main
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"strings"
+)
 
 //
 // Data Structures
@@ -57,7 +60,46 @@ type ExtensionsType struct {
 	XML []byte `xml:",innerxml"`
 }
 
-// type GpxExt struct {
-// 	Hr  int `xml:"gpxdata:hr"`
-// 	Cad int `xml:"gpxdata:cadence"`
-// }
+// Which tracks are in file?
+func (q Query) listOfTracks() []string {
+	var ret []string
+	for _, track := range q.Tracks {
+		ret = append(ret, track.getTimestamp())
+	}
+	return ret
+}
+
+// How many tracks are in file?
+func (q Query) numberOfTracks() int {
+	return len(q.Tracks)
+}
+
+// Returns first timestamp found in track
+func (track Track) getTimestamp() string {
+
+	for _, trksegs := range track.Trksegs {
+		for _, trkpt := range trksegs.Trkpts {
+			if len(trkpt.Time) > 0 {
+				return strings.Replace(trkpt.Time, ":", "-", -1)
+			}
+		}
+	}
+	return "unknown"
+}
+
+// GPX representation of track
+func (t Track) gpx() string {
+
+	// GPX Header
+	header := `<?xml version="1.0" encoding="UTF-8" ?>
+	<gpx xmlns="http://www.topografix.com/GPX/1/1"
+	    version="1.1"
+	    creator="rubiTrack - https://www.rubitrack.com"
+	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	    xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0"
+	    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.cluetrust.com/XML/GPXDATA/1/0 http://www.cluetrust.com/Schemas/gpxdata10.xsd">`
+	footer := "\n</gpx>\n"
+
+	b, _ := xml.MarshalIndent(t, "  ", "  ")
+	return header + string(b) + footer
+}

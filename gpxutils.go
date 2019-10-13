@@ -71,7 +71,7 @@ func main() {
 	b, _ := ioutil.ReadAll(xmlFile)
 
 	// Progress spinner
-	s := spinner.New(spinner.CharSets[38], 200*time.Millisecond) // Build our new spinner
+	s := spinner.New(spinner.CharSets[38], 200*time.Millisecond)
 	s.Prefix = "Processing input-file: "
 	s.Writer = os.Stderr
 
@@ -79,20 +79,12 @@ func main() {
 	s.Start() // Start the spinner
 	var q Query
 	_ = xml.Unmarshal(b, &q)
-	s.Stop()
+	s.Stop() // Stop Spinner
 
-	// GPX Header
-	header := `<?xml version="1.0" encoding="UTF-8" ?>
-	<gpx xmlns="http://www.topografix.com/GPX/1/1"
-	    version="1.1"
-	    creator="rubiTrack - https://www.rubitrack.com"
-	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	    xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0"
-	    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.cluetrust.com/XML/GPXDATA/1/0 http://www.cluetrust.com/Schemas/gpxdata10.xsd">`
-
-	//	Parse the contained xml
+	//	Write each track to a single file
 	if split {
 
+		// Create out directory
 		if _, err = os.Stat(outDir); os.IsNotExist(err) {
 			_ = os.Mkdir(outDir, 0711)
 		}
@@ -100,41 +92,24 @@ func main() {
 		s.Start() // Start the spinner
 
 		for _, track := range q.Tracks {
-			outfile := getTimestamp(track)
-			b, _ := xml.MarshalIndent(track, "  ", "  ")
+			outfile := track.getTimestamp()
 			f, err := os.Create(outDir + "/" + outfile + ".gpx")
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
-
-			f.WriteString(header)
-			f.WriteString(string(b))
-			f.WriteString("\n</gpx>\n")
+			f.WriteString(track.gpx())
 			_ = f.Close()
 		}
 		s.Stop()
 		return
 	}
 
+	// List all tracks contained in file
 	if ls {
-		for _, track := range q.Tracks {
-			fmt.Println(getTimestamp(track))
+		for _, line := range q.listOfTracks() {
+			fmt.Println(line)
 		}
-
-		fmt.Println("Total amout of tracks in file: ", len(q.Tracks))
+		fmt.Println("Total amout of tracks in file: ", q.numberOfTracks())
 	}
-}
-
-// Returns first timestamp found in track
-func getTimestamp(track Track) string {
-
-	for _, trksegs := range track.Trksegs {
-		for _, trkpt := range trksegs.Trkpts {
-			if len(trkpt.Time) > 0 {
-				return trkpt.Time
-			}
-		}
-	}
-	return "unknown"
 }
