@@ -36,22 +36,29 @@ import (
 var (
 	readFile  = ""
 	ls, split bool
+	outDir    = ""
 )
 
 func main() {
 
 	// command line parsing
-	wordPtr := flag.String("input", "GPX File", "relative path to GPX file")
-
+	inPtr := flag.String("in", "none", "relative path to GPX file")
+	outPtr := flag.String("out", "out", "relative path to output directory")
 	flag.BoolVar(&split, "split", false, "write single files for tracks")
 	flag.BoolVar(&ls, "ls", false, "list tracks ")
 	flag.Parse()
-	if wordPtr == nil || *wordPtr == "" {
+	if inPtr == nil || *inPtr == "" {
 		panic("input file is missing")
 	}
 
+	if outPtr == nil || *outPtr == "" {
+		outDir = "out"
+	} else {
+		outDir = *outPtr
+	}
+
 	// Open the file given at commandline
-	readFile = *wordPtr
+	readFile = *inPtr
 	xmlFile, err := os.Open(readFile)
 
 	if err != nil {
@@ -63,15 +70,18 @@ func main() {
 
 	b, _ := ioutil.ReadAll(xmlFile)
 
+	// Progress spinner
 	s := spinner.New(spinner.CharSets[38], 200*time.Millisecond) // Build our new spinner
 	s.Prefix = "Processing input-file: "
 	s.Writer = os.Stderr
-	s.Start() // Start the spinner
 
+	// Unmarshall gpx file
+	s.Start() // Start the spinner
 	var q Query
 	_ = xml.Unmarshal(b, &q)
-
 	s.Stop()
+
+	// GPX Header
 	header := `<?xml version="1.0" encoding="UTF-8" ?>
 	<gpx xmlns="http://www.topografix.com/GPX/1/1"
 	    version="1.1"
@@ -79,29 +89,20 @@ func main() {
 	    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	    xmlns:gpxdata="http://www.cluetrust.com/XML/GPXDATA/1/0"
 	    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.cluetrust.com/XML/GPXDATA/1/0 http://www.cluetrust.com/Schemas/gpxdata10.xsd">`
-	//	Parse the contained xml
 
+	//	Parse the contained xml
 	if split {
 
-		if _, err = os.Stat("out"); os.IsNotExist(err) {
-			_ = os.Mkdir("out", 0711)
+		if _, err = os.Stat(outDir); os.IsNotExist(err) {
+			_ = os.Mkdir(outDir, 0711)
 		}
 		s.Prefix = "Creating single files: "
 		s.Start() // Start the spinner
 
 		for _, track := range q.Tracks {
-			outfile := ""
-			for _, trksegs := range track.Trksegs {
-				for _, trkpt := range trksegs.Trkpts {
-					if len(trkpt.Time) > 0 {
-						outfile = trkpt.Time
-						break
-					}
-				}
-			}
-
+			outfile := getTimestamp(track)
 			b, _ := xml.MarshalIndent(track, "  ", "  ")
-			f, err := os.Create("out/" + outfile + ".gpx")
+			f, err := os.Create(outDir + "/" + outfile + ".gpx")
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -114,15 +115,26 @@ func main() {
 		}
 		s.Stop()
 		return
-
 	}
-
-	fmt.Println("Amount of tracks: ", len(q.Tracks))
 
 	if ls {
+		for _, track := range q.Tracks {
+			fmt.Println(getTimestamp(track))
+		}
 
-		for i := 0; i < len(q.Tracks); i++ {
-			fmt.Println("Track description: " + q.Tracks[i].Desc)
+		fmt.Println("Total amout of tracks in file: ", len(q.Tracks))
+	}
+}
+
+// Returns first timestamp found in track
+func getTimestamp(track Track) string {
+
+	for _, trksegs := range track.Trksegs {
+		for _, trkpt := range trksegs.Trkpts {
+			if len(trkpt.Time) > 0 {
+				return trkpt.Time
+			}
 		}
 	}
+	return "unknown"
 }
