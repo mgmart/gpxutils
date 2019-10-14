@@ -1,12 +1,10 @@
-#+TITLE: GPS Track Utilites
-
 * GPS Track Utilities
 
-This project was initiated because I needed a tools which extracts all tracks
-from a multi-track GPX file.
+This project was initiated because I needed to extract all tracks from a
+multi-track GPX file.
 
-At the moment this is besides the possibility to list all tracks within a file
-the only implemented function.
+At the moment this is - besides the possibility to list all tracks within a file
+- the only implemented function.
 
 Possible additions to this project could be reading and writing of /fit/ files.
 

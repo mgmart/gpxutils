@@ -132,11 +132,3 @@ func TestGpx(t *testing.T) {
 		t.Error("track.gpx gave faulty return")
 	}
 }
-
-func TestListOfTracks(t *testing.T) {
-	var track Track
-	_ = xml.Unmarshal([]byte(xmlTrack), &track)
-
-	fmt.Println(track.
-
-}
