@@ -29,6 +29,7 @@ import (
 	"io/ioutil"
 	"os"
 	"time"
+	"path"
 
 	"github.com/briandowns/spinner"
 )
@@ -90,9 +91,16 @@ func main() {
 		}
 		s.Prefix = "Creating single files: "
 		s.Start() // Start the spinner
-
-		for _, track := range q.Tracks {
-			outfile := track.getTimestamp()
+		outfile := ""
+		for i, track := range q.Tracks {
+			if track.getTimestamp() != "unknown" {
+				outfile = track.getTimestamp()
+			} else {
+				basename := path.Base(*inPtr)
+				extension := path.Ext(basename)
+				name := basename[0:len(basename) - len(extension)]
+				outfile = name + fmt.Sprintf("-%02d", i)
+			}
 			f, err := os.Create(outDir + "/" + outfile + ".gpx")
 			if err != nil {
 				fmt.Println(err)
