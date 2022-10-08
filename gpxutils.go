@@ -7,18 +7,18 @@
 //
 //  This file is part of gpxutils.
 //
-//  Everorg is free software: you can redistribute it and/or modify
+//  gpxutils is free software: you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License as published by
 //  the Free Software Foundation, either version 3 of the License, or
 //  (at your option) any later version.
 //
-//  EverOrg is distributed in the hope that it will be useful,
+//  gpxutils is distributed in the hope that it will be useful,
 //  but WITHOUT ANY WARRANTY; without even the implied warranty of
 //  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 //  GNU General Public License for more details.
 //
 //  You should have received a copy of the GNU General Public License
-//  along with EverOrg.  If not, see <http://www.gnu.org/licenses/>.
+//  along with gpxutils. If not, see <http://www.gnu.org/licenses/>.
 
 package main
 
@@ -36,9 +36,10 @@ import (
 )
 
 var (
-	readFile  = ""
+	readFile      = ""
 	ls, split, tm bool
-	outDir    = ""
+	outDir        = ""
+	begin, end    time.Time
 )
 
 func main() {
@@ -62,26 +63,25 @@ func main() {
 	}
 
 	flag.Func("begin", "`start time`", func(s string) error {
-		var begin time.Time
+		// var begin time.Time
+		var err error
 		ds := time.Now().Format("2006-01-02") + "T" + s + ":00+02:00"
-		begin, err := time.Parse(time.RFC3339, ds)
+		begin, err = time.Parse(time.RFC3339, ds)
 		if err != nil {
 			fmt.Println("Begin time not valid")
-			return nil
+			return err
 		}
-		fmt.Println(begin)
 		return nil
 	})
 
 	flag.Func("end", "`end time`", func(s string) error {
-		var end time.Time
+		var err error
 		ds := time.Now().Format("2006-01-02") + "T" + s + ":00+02:00"
-		end, err := time.Parse(time.RFC3339, ds)
+		end, err = time.Parse(time.RFC3339, ds)
 		if err != nil {
 			fmt.Println("Begin time not valid")
-			return nil
+			return err
 		}
-		fmt.Println(end)
 		return nil
 	})
 
@@ -126,7 +126,7 @@ func main() {
 			} else {
 				basename := path.Base(*inPtr)
 				extension := path.Ext(basename)
-				name := basename[0:len(basename) - len(extension)]
+				name := basename[0 : len(basename)-len(extension)]
 				outfile = name + fmt.Sprintf("-%02d", i)
 			}
 			f, err := os.Create(outDir + "/" + outfile + ".gpx")
@@ -151,11 +151,27 @@ func main() {
 
 	if tm {
 		outfile := ""
-		for i, _ := range q.Tracks {
+		switch {
+		case begin.IsZero():
+			fmt.Println("Valid start time must be given")
+			return
+
+		case end.IsZero():
+			fmt.Println("Valid end time must be given")
+			return
+		case end.Before(begin):
+			fmt.Println("End time must be after start time")
+			return
+		case end.Equal(begin):
+			fmt.Println("End time must be after start time")
+			return
+		}
+
+		for i := range q.Tracks {
 
 			basename := path.Base(*inPtr)
 			extension := path.Ext(basename)
-			name := basename[0:len(basename) - len(extension)]
+			name := basename[0 : len(basename)-len(extension)]
 			outfile = name + fmt.Sprintf("-%02d", i)
 
 			f, err := os.Create(outDir + "/" + outfile + ".gpx")
@@ -163,7 +179,7 @@ func main() {
 				fmt.Println(err)
 				continue
 			}
-			f.WriteString(q.Tracks[0].setTimeStamps())
+			f.WriteString(q.Tracks[0].setTimeStamps(begin, end))
 
 			_ = f.Close()
 		}

@@ -24,7 +24,6 @@ package main
 
 import (
 	"encoding/xml"
-	"fmt"
 	"strings"
 	"time"
 	//	"time"
@@ -108,11 +107,18 @@ func (t Track) gpx() string {
 }
 
 // Returns something
-func (track *Track) setTimeStamps() string{
+func (track *Track) setTimeStamps(b, e time.Time) string {
 	track2 := Track{}
 	track2.Name = track.Name
 	track2.Desc = track.Desc
-	t := time.Date(2022, 10, 2, 7, 13, 10, 10, time.UTC)
+	var cnt float64 = 0
+	s := e.Sub(b).Seconds()
+	for _, trksegs := range track.Trksegs {
+		cnt = cnt + float64(len(trksegs.Trkpts))
+	}
+
+	secs := time.Duration(s / cnt)
+
 	for _, trksegs := range track.Trksegs {
 		trksegs2 := Trkseg{}
 		for _, trkpt := range trksegs.Trkpts {
@@ -120,8 +126,8 @@ func (track *Track) setTimeStamps() string{
 			trkpt2.Lat = trkpt.Lat
 			trkpt2.Lon = trkpt.Lon
 			trkpt2.Ele = trkpt.Ele
-			trkpt2.Time = t.Format(time.RFC3339)
-			t = t.Add(time.Second * 52)
+			trkpt2.Time = b.Format(time.RFC3339)
+			b = b.Add(time.Second * secs)
 			trksegs2.Trkpts = append(trksegs2.Trkpts, trkpt2)
 		}
 		track2.Trksegs = append(track2.Trksegs, trksegs2)
@@ -137,8 +143,6 @@ func (track *Track) setTimeStamps() string{
 	    xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.cluetrust.com/XML/GPXDATA/1/0 http://www.cluetrust.com/Schemas/gpxdata10.xsd">`
 	footer := "\n</gpx>\n"
 
-	b, _ := xml.MarshalIndent(track2, "  ", "  ")
-	fmt.Println(string(b))
-	return header + string(b) + footer
-	//	return header + footer
+	bt, _ := xml.MarshalIndent(track2, "  ", "  ")
+	return header + string(bt) + footer
 }
