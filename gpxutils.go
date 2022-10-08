@@ -27,16 +27,17 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+
 	"os"
-	"time"
 	"path"
+	"time"
 
 	"github.com/briandowns/spinner"
 )
 
 var (
 	readFile  = ""
-	ls, split bool
+	ls, split, tm bool
 	outDir    = ""
 )
 
@@ -45,9 +46,11 @@ func main() {
 	// command line parsing
 	inPtr := flag.String("in", "none", "relative path to GPX file")
 	outPtr := flag.String("out", "out", "relative path to output directory")
+
 	flag.BoolVar(&split, "split", false, "write single files for tracks")
 	flag.BoolVar(&ls, "ls", false, "list tracks ")
-	flag.Parse()
+	flag.BoolVar(&tm, "time", false, "add time")
+
 	if inPtr == nil || *inPtr == "" {
 		panic("input file is missing")
 	}
@@ -58,6 +61,31 @@ func main() {
 		outDir = *outPtr
 	}
 
+	flag.Func("begin", "`start time`", func(s string) error {
+		var begin time.Time
+		ds := time.Now().Format("2006-01-02") + "T" + s + ":00+02:00"
+		begin, err := time.Parse(time.RFC3339, ds)
+		if err != nil {
+			fmt.Println("Begin time not valid")
+			return nil
+		}
+		fmt.Println(begin)
+		return nil
+	})
+
+	flag.Func("end", "`end time`", func(s string) error {
+		var end time.Time
+		ds := time.Now().Format("2006-01-02") + "T" + s + ":00+02:00"
+		end, err := time.Parse(time.RFC3339, ds)
+		if err != nil {
+			fmt.Println("Begin time not valid")
+			return nil
+		}
+		fmt.Println(end)
+		return nil
+	})
+
+	flag.Parse()
 	// Open the file given at commandline
 	readFile = *inPtr
 	xmlFile, err := os.Open(readFile)
@@ -120,4 +148,26 @@ func main() {
 		}
 		fmt.Println("Total amout of tracks in file: ", q.numberOfTracks())
 	}
+
+	if tm {
+		outfile := ""
+		for i, _ := range q.Tracks {
+
+			basename := path.Base(*inPtr)
+			extension := path.Ext(basename)
+			name := basename[0:len(basename) - len(extension)]
+			outfile = name + fmt.Sprintf("-%02d", i)
+
+			f, err := os.Create(outDir + "/" + outfile + ".gpx")
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			f.WriteString(q.Tracks[0].setTimeStamps())
+
+			_ = f.Close()
+		}
+		return
+	}
+
 }
