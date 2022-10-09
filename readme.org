@@ -1,7 +1,7 @@
 * GPS Track Utilities
 
 This project was initiated because I needed to extract all tracks from a
-multi-track GPX file.
+multi-track GPX file. In an update the addition of timestamps to waypoints was added.
 
 At the moment this is - besides the possibility to list all tracks within a file
 - the only implemented function.
@@ -23,5 +23,10 @@ gpxutils -in [gpxfile] ls
 Extract all tracks to single files from multi-track GPX file
 #+BEGIN_SRC shell
 gpxutils -in [gpxfile] -out [folder to write to] -split
+#+END_SRC
+
+Add timestamps to an existing gpx.
+#+BEGIN_SRC shell
+gpxutils -in [gpxfile] -time -begin [hh:mm] -end [hh:mm]
 #+END_SRC
 
