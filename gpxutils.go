@@ -26,7 +26,7 @@ import (
 	"encoding/xml"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"os"
 	"path"
@@ -151,7 +151,11 @@ func main() {
 
 	defer func() { _ = xmlFile.Close() }()
 
-	b, _ := ioutil.ReadAll(xmlFile)
+	b, err := io.ReadAll(xmlFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to read input file '%s': %v\n", readFile, err)
+		os.Exit(1)
+	}
 
 	// Progress spinner
 	s := spinner.New(spinner.CharSets[38], 200*time.Millisecond)
@@ -161,7 +165,10 @@ func main() {
 	// Unmarshall gpx file
 	s.Start() // Start the spinner
 	var q Query
-	_ = xml.Unmarshal(b, &q)
+	if err := xml.Unmarshal(b, &q); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: Failed to parse GPX file '%s': %v\n", readFile, err)
+		os.Exit(1)
+	}
 	s.Stop() // Stop Spinner
 
 	// Write each track to a single file
@@ -253,7 +260,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "Warning: Failed to create file '%s': %v\n", outPath, err)
 				continue
 			}
-			if _, err := f.WriteString(q.Tracks[0].setTimeStamps(begin, end)); err != nil {
+			if _, err := f.WriteString(q.Tracks[i].setTimeStamps(begin, end)); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: Failed to write to file '%s': %v\n", outPath, err)
 				f.Close()
 				continue
